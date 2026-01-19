@@ -26,7 +26,6 @@ const bannerSchema = new mongoose.Schema(
     },
     link: {
       type: String,
-      required: [true, 'Banner link is required'],
       trim: true
     },
     status: {
@@ -39,6 +38,30 @@ const bannerSchema = new mongoose.Schema(
     timestamps: true // Automatically adds createdAt and updatedAt fields
   }
 );
+
+
+bannerSchema.pre('save', function(next) {
+  const now = new Date();
+
+  if (this.startDate <= now && this.endDate >= now && this.status === 'pending') {
+    this.status = 'active';
+  }
+
+  if (this.endDate < now && this.status === 'active') {
+    this.status = 'expired';
+  } 
+  next();
+});
+
+bannerSchema.virtual('currentStatus').get(function() {
+  const now = new Date();
+
+  if (this.endDate < now) return 'expired';
+  if (this.startDate <= now) return 'active';
+  return 'pending'; 
+}); 
+bannerSchema.set('toJSON', { virtuals: true });
+bannerSchema.set('toObject', { virtuals: true });
 
 // Create and export the Banner model
 const Banner = mongoose.model('Banner', bannerSchema);

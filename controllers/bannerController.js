@@ -7,12 +7,12 @@ const fs = require('fs');
 // @access  Public
 const createBanner = async (req, res) => {
   try {
-    const { requestedDate, days, startDate, endDate, link, status } = req.body;
+    const { requestedDate, days, startDate, link, status } = req.body;
 
-    if (!startDate || !endDate || !link) {
+    if (!startDate || !days) {
       return res.status(400).json({
         success: false,
-        message: 'Start date, end date, and link are required'
+        message: 'Start date and number of days are required'
       });
     }
 
@@ -25,12 +25,16 @@ const createBanner = async (req, res) => {
       });
     }
 
+    const start = new Date(startDate);
+    const end = new Date(start);
+    end.setDate(end.getDate() + parseInt(days));
+
     const banner = await Banner.create({
       requestedDate: requestedDate || new Date(),
       image: imageFilename,
-      days: parseInt(days) || 30,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      days: parseInt(days),
+      startDate: start,
+      endDate: end,
       link,
       status: status || 'pending'
     });
@@ -119,6 +123,14 @@ const updateBanner = async (req, res) => {
         success: false,
         message: 'Banner not found'
       });
+    }
+
+    if (req.body.startDate && req.body.days) {
+      const newStart = req.body.startDate ? new Date(req.body.startDate) : banner.startDate;
+      const newDays = req.body.days ? parseInt(req.body.days) : banner.days;
+      const newEnd = new Date(newStart);
+      newEnd.setDate(newEnd.getDate() + newDays);
+      req.body.endDate = newEnd;
     }
 
     if (req.file) {
