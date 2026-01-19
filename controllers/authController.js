@@ -12,6 +12,11 @@ const isValidPassword = (password) => {
   return password && password.length >= 6;
 };
 
+// Helper function to validate phone number
+const isValidPhone = (phone) => {
+  return /^[0-9]{10,15}$/.test(phone.replace(/[\s\-\(\)]/g, ''));
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/signup
 // @access  Public
@@ -55,6 +60,14 @@ const signup = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Validate phone number
+    if (phone && !isValidPhone(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid phone number'
       });
     }
 
@@ -348,6 +361,32 @@ const updateProfile = async (req, res) => {
   }
 };
 
+const deleteSelfAccount = async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.session.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    req.session.destroy();
+    res.clearCookie('connect.sid');
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete account',
+      error: error.message
+    });
+  }
+};
+
 // @desc    Change password
 // @route   PUT /api/auth/change-password
 // @access  Private
@@ -426,5 +465,6 @@ module.exports = {
   logout,
   getMe,
   updateProfile,
-  changePassword
+  changePassword,
+  deleteSelfAccount
 };

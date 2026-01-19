@@ -1,65 +1,37 @@
-const Customer = require('../models/Customer');
-
-// @desc    Create a new customer
-// @route   POST /api/customers
-// @access  Public
-const createCustomer = async (req, res) => {
-  try {
-    const { name, phone, email, memberSince, purchasedItems, rewardPoints, avatar } = req.body;
-
-    if (!name || !phone || !email) {
-      return res.status(400).json({
-        success: false,
-        message: 'Name, phone, and email are required'
-      });
-    }
-
-    const customer = await Customer.create({
-      name,
-      phone,
-      email,
-      memberSince: memberSince ? new Date(memberSince) : new Date(),
-      purchasedItems: purchasedItems || 0,
-      rewardPoints: rewardPoints || 0,
-      avatar: avatar || null
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Customer created successfully',
-      data: customer
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Failed to create customer',
-      error: error.message
-    });
-  }
-};
-
+const Customer = require('../models/User');
 // @desc    Get all customers with pagination
 // @route   GET /api/customers
 // @access  Public
 const getAllCustomers = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const pageSize = parseInt(req.query.pageSize) || 10;
-    const skip = (page - 1) * pageSize;
+    const { page = 1, pageSize = 10, search = '' } = req.query;
+    const query = { role: 'customer' };
 
-    const customers = await Customer.find()
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    const skip = (parseInt(page) - 1) * parseInt(pageSize);
+
+    const customers = await Customer.find(query)
+      .select('-password') // Exclude password field
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(pageSize);
+      .limit(parseInt(pageSize));
 
-    const total = await Customer.countDocuments();
+    const total = await Customer.countDocuments(query);
 
     res.status(200).json({
       success: true,
-      data: customers,
+      count: customers.length,
       total,
-      page,
-      pageSize
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(pageSize)),
+      data: customers.length ? customers : [],
     });
   } catch (error) {
     res.status(500).json({
@@ -75,9 +47,9 @@ const getAllCustomers = async (req, res) => {
 // @access  Public
 const getCustomerById = async (req, res) => {
   try {
-    const customer = await Customer.findById(req.params.id);
+    const customer = await Customer.findById(req.params.id).select('-password');
 
-    if (!customer) {
+    if (!customer || customer.role !== 'customer') {
       return res.status(404).json({
         success: false,
         message: 'Customer not found'
@@ -86,7 +58,7 @@ const getCustomerById = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: customer
+      data: customer.toJSON()
     });
   } catch (error) {
     res.status(500).json({
@@ -102,23 +74,35 @@ const getCustomerById = async (req, res) => {
 // @access  Public
 const updateCustomer = async (req, res) => {
   try {
-    const customer = await Customer.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const { name, phone, email, avatar, purchasedItems, rewardPoints, isActive } = req.body;
 
-    if (!customer) {
+    const customer = await Customer.findById(req.params.id);
+    if (!customer || customer.role !== 'customer') {
       return res.status(404).json({
         success: false,
         message: 'Customer not found'
       });
     }
 
+    const updateDate = {};
+    if (name) updateDate.name = name;
+    if (email) updateDate.email = email;
+    if (phone !== undefined) updateDate.phone = phone;
+    if (avatar !== undefined) updateDate.avatar = avatar;
+    if (purchasedItems !== undefined) updateDate.purchasedItems = purchasedItems;
+    if (rewardPoints !== undefined) updateDate.rewardPoints = rewardPoints;
+    if (isActive !== undefined) updateDate.isActive = isActive;
+    
+    const updatedCustomer = await Customer.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateDate },
+      { new: true, runValidators: true }
+    ).select('-password');
+
     res.status(200).json({
       success: true,
       message: 'Customer updated successfully',
-      data: customer
+      data: updatedCustomer
     });
   } catch (error) {
     res.status(400).json({
@@ -157,7 +141,6 @@ const deleteCustomer = async (req, res) => {
 };
 
 module.exports = {
-  createCustomer,
   getAllCustomers,
   getCustomerById,
   updateCustomer,

@@ -42,6 +42,16 @@ const userSchema = new mongoose.Schema(
     },
     lastLogin: {
       type: Date
+    },
+    purchasedItems: {
+      type: Number,
+      default: 0,
+      min: [0, 'Purchased items cannot be negative']
+    },
+    rewardPoints: {
+      type: Number,
+      default: 0,
+      min: [0, 'Reward points cannot be negative']
     }
   },
   {
