@@ -38,6 +38,7 @@ app.use(session({
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads/products', express.static(path.join(__dirname, 'uploads/products')));
 app.use('/uploads/banners', express.static(path.join(__dirname, 'uploads/banners')));
+app.use('/uploads/categories', express.static(path.join(__dirname, 'uploads/categories')));
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce';
@@ -64,42 +65,25 @@ app.use('/api/team-members', require('./routes/teamMemberRoutes'));
 app.use('/api/coupons', require('./routes/couponRoutes'));
 app.use('/api/checkout', require('./routes/checkoutRoutes'));
 
-// Root route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Ecommerce Backend API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      products: '/api/products',
-      categories: '/api/categories',
-      banners: '/api/banners',
-      customers: '/api/customers',
-      orders: '/api/orders',
-      reviews: '/api/reviews',
-      teamMembers: '/api/team-members',
-      coupons: '/api/coupons',
-      checkout: '/api/checkout'
-    }
-  });
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Server is running' });
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Something went wrong!',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
-  });
+app.use((error, req, res, next) => {
+  console.error('Error:', error);
+  if (error.name === 'MulterError') {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'File size is too large. Max 2MB allowed.' });
+    }
+  }
+  res.status(500).json({ message: error.message || 'Something went wrong!' });
 });
 
 // 404 handler
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
-  });
+  res.status(404).json({ message: 'Route not found' });
 });
 
 // Start server

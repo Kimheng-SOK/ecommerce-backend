@@ -1,12 +1,17 @@
 const Category = require('../models/Category');
 const Product = require('../models/Product');
+const path = require('path');
+const fs = require('fs');
 
 // @desc    Create a new category
 // @route   POST /api/categories
 // @access  Admin only
 const createCategory = async (req, res) => {
   try {
-    const { name, description, parent, image, isActive, order } = req.body;
+    const { name, description, parent, isActive, order } = req.body;
+    
+    // Handle uploaded image
+    const image = req.file ? `/uploads/categories/${req.file.filename}` : null;
 
     if (!name) {
       return res.status(400).json({
@@ -15,9 +20,12 @@ const createCategory = async (req, res) => {
       });
     }
 
+    // Clean parent field - handle empty strings, "null", "undefined", etc.
+    const cleanParent = parent && parent !== 'null' && parent !== 'undefined' && parent.trim() !== '' ? parent : null;
+
     // Validate parent category if provided
-    if (parent) {
-      const parentCategory = await Category.findById(parent);
+    if (cleanParent) {
+      const parentCategory = await Category.findById(cleanParent);
       if (!parentCategory) {
         return res.status(400).json({
           success: false,
@@ -38,7 +46,7 @@ const createCategory = async (req, res) => {
     const category = await Category.create({
       name: name.trim(),
       description: description || undefined,
-      parent: parent || null,
+      parent: cleanParent || undefined,
       image: image || undefined,
       isActive: isActive !== undefined ? isActive : true,
       order: order || 0
@@ -223,6 +231,18 @@ const updateCategory = async (req, res) => {
       }
     }
 
+    // Handle uploaded image
+    if (req.file) {
+      // Delete old image if it exists
+      if (category.image) {
+        const oldImagePath = path.join(__dirname, '..', category.image);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+      }
+      req.body.image = `/uploads/categories/${req.file.filename}`;
+    }
+
     // Update category
     const updatedCategory = await Category.findByIdAndUpdate(
       req.params.id,
@@ -282,6 +302,14 @@ const deleteCategory = async (req, res) => {
         success: false,
         message: `Cannot delete category with ${productCount} product(s). Please reassign or delete products first.`
       });
+    }
+
+    // Delete image file if it exists
+    if (category.image) {
+      const imagePath = path.join(__dirname, '..', category.image);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
     }
 
     await Category.findByIdAndDelete(req.params.id);
