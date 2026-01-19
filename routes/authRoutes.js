@@ -6,7 +6,8 @@ const {
   logout,
   getMe,
   updateProfile,
-  changePassword
+  changePassword,
+  deleteSelfAccount
 } = require('../controllers/authController');
 const {
   getAllCustomers,
