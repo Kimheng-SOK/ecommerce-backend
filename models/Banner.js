@@ -2,11 +2,6 @@ const mongoose = require('mongoose');
 
 const bannerSchema = new mongoose.Schema(
   {
-    requestedDate: {
-      type: Date,
-      required: [true, 'Requested date is required'],
-      default: Date.now
-    },
     image: {
       type: String,
       required: [true, 'Banner image is required']

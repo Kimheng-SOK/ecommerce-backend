@@ -7,7 +7,7 @@ const fs = require('fs');
 // @access  Public
 const createBanner = async (req, res) => {
   try {
-    const { requestedDate, days, startDate, link, status } = req.body;
+    const { days, startDate, link, status } = req.body;
 
     if (!startDate || !days) {
       return res.status(400).json({
@@ -15,6 +15,21 @@ const createBanner = async (req, res) => {
         message: 'Start date and number of days are required'
       });
     }
+
+    // validate startDate
+    const start =  new Date(startDate);
+    const now =  new Date();
+    now.setHours(0,0,0,0);
+
+    if (start < now) {
+      return res.status(400).json({
+        success: false,
+        message: 'Start date cannot be in the past'
+      });
+    }
+
+    const end = new Date(start);
+    end.setDate(end.getDate() + parseInt(days));
 
     const imageFilename = req.file ? req.file.filename : null;
 
@@ -25,12 +40,7 @@ const createBanner = async (req, res) => {
       });
     }
 
-    const start = new Date(startDate);
-    const end = new Date(start);
-    end.setDate(end.getDate() + parseInt(days));
-
     const banner = await Banner.create({
-      requestedDate: requestedDate || new Date(),
       image: imageFilename,
       days: parseInt(days),
       startDate: start,
@@ -125,7 +135,7 @@ const updateBanner = async (req, res) => {
       });
     }
 
-    if (req.body.startDate && req.body.days) {
+    if (req.body.startDate || req.body.days) {
       const newStart = req.body.startDate ? new Date(req.body.startDate) : banner.startDate;
       const newDays = req.body.days ? parseInt(req.body.days) : banner.days;
       const newEnd = new Date(newStart);
