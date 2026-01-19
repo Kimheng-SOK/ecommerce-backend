@@ -10,7 +10,7 @@ const createCategory = async (req, res) => {
   try {
     const { name, description, parent, isActive, order } = req.body;
     
-    // Handle uploaded image
+    // Access the uploaded file (already processed by multer)
     const image = req.file ? `/uploads/categories/${req.file.filename}` : null;
 
     if (!name) {

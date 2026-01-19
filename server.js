@@ -46,10 +46,10 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ecomme
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    console.log('✅ Connected to MongoDB successfully');
+    console.log('Connected to MongoDB successfully');
   })
   .catch((error) => {
-    console.error('❌ MongoDB connection error:', error.message);
+    console.error('MongoDB connection error:', error.message);
     process.exit(1);
   });
 
@@ -89,6 +89,6 @@ app.use((req, res) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📁 Static files served from: ${path.join(__dirname, 'uploads')}`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Static files served from: ${path.join(__dirname, 'uploads')}`);
 });
