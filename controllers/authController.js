@@ -232,23 +232,33 @@ const login = async (req, res) => {
 // @access  Private
 const logout = async (req, res) => {
   try {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({
-          success: false,
-          message: 'Failed to logout',
-          error: err.message
+    // If there's a session, destroy it
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to logout',
+            error: err.message
+          });
+        }
+
+        // Clear cookie
+        res.clearCookie('connect.sid');
+
+        res.status(200).json({
+          success: true,
+          message: 'Logout successful'
         });
-      }
-
-      // Clear cookie
+      });
+    } else {
+      // No session to destroy, just return success
       res.clearCookie('connect.sid');
-
       res.status(200).json({
         success: true,
         message: 'Logout successful'
       });
-    });
+    }
   } catch (error) {
     res.status(500).json({
       success: false,
