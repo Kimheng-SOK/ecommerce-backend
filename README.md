@@ -31,6 +31,10 @@ npm install
 This will install:
 - `express` - Web framework
 - `mongoose` - MongoDB object modeling
+"express-session": "^1.17.3",
+"cookie-parser": "^1.4.6",
+"bcryptjs": "^2.4.3",
+"dotenv": "^16.3.1",
 - `multer` - File upload middleware
 - `cors` - Cross-Origin Resource Sharing
 - `dotenv` - Environment variable management
