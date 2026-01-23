@@ -1,9 +1,9 @@
- const Product = require('../models/Product');
+const Product = require('../models/Product');
 const Category = require('../models/Category');
 const path = require('path');
 const fs = require('fs');
 
-// @desc    Create a new product with image
+// @desc    Create a new product with images
 // @route   POST /api/products
 // @access  Admin only
 const createProduct = async (req, res) => {
@@ -20,7 +20,8 @@ const createProduct = async (req, res) => {
       inStock,
       rating,
       description,
-      status
+      status,
+      badges
     } = req.body;
 
     // Validate required fields
@@ -49,16 +50,38 @@ const createProduct = async (req, res) => {
       });
     }
 
-    // Check if image was uploaded
-    if (!req.file) {
+    // Handle multiple file uploads (support all file types, not just images)
+    let images = [];
+    // Support multer .array('images'), .fields([{name:'images'}]), or .single('images')
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      images = req.files.map(file => file.filename);
+    } else if (req.files && req.files.images && Array.isArray(req.files.images)) {
+      images = req.files.images.map(file => file.filename);
+    } else if (req.file) {
+      images = [req.file.filename];
+    }
+    // Accept any file type, not just images, but still require at least one file
+    if (!images.length) {
       return res.status(400).json({
         success: false,
-        message: 'Product image is required'
+        message: 'At least one product image/file is required'
       });
     }
 
-    // Check if image was uploaded
-    const images = req.file ? [req.file.filename] : [];
+    // Parse badges if present (array or string)
+    let badgesArr = [];
+    if (badges) {
+      if (Array.isArray(badges)) {
+        badgesArr = badges;
+      } else if (typeof badges === 'string') {
+        // badges[] from form-data comes as repeated fields or comma-separated string
+        if (badges.includes(',')) {
+          badgesArr = badges.split(',').map(b => b.trim());
+        } else {
+          badgesArr = [badges];
+        }
+      }
+    }
 
     // Create product
     const product = await Product.create({
@@ -74,7 +97,8 @@ const createProduct = async (req, res) => {
       rating: rating ? parseFloat(rating) : 0,
       images: images,
       description: description || undefined,
-      status: status || 'active'
+      status: status || 'active',
+      badges: badgesArr.length ? badgesArr : undefined
     });
 
     // Populate category for response
@@ -86,8 +110,22 @@ const createProduct = async (req, res) => {
       data: product
     });
   } catch (error) {
-    // If product creation fails but image was uploaded, delete the image
-    if (req.file) {
+    // If product creation fails but images were uploaded, delete them
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach(file => {
+        const imagePath = path.join(__dirname, '../uploads/products', file.filename);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      });
+    } else if (req.files && req.files.images && Array.isArray(req.files.images)) {
+      req.files.images.forEach(file => {
+        const imagePath = path.join(__dirname, '../uploads/products', file.filename);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      });
+    } else if (req.file) {
       const imagePath = path.join(__dirname, '../uploads/products', req.file.filename);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
