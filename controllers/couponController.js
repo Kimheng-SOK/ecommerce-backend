@@ -168,7 +168,7 @@ const getCouponByCode = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: coupon
+      data: [coupon]
     });
   } catch (error) {
     res.status(500).json({

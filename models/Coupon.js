@@ -63,6 +63,50 @@ couponSchema.pre('save', function (next) {
   next();
 });
 
+// Method to check if coupon is valid
+couponSchema.methods.isValid = function() {
+  const now = new Date();
+  const start = new Date(this.startDate);
+  const end = new Date(this.endDate);
+  
+  // Check if coupon is within valid date range
+  if (now < start || now > end) {
+    return false;
+  }
+  
+  // Check if coupon is active
+  if (this.status !== 'active') {
+    return false;
+  }
+  
+  // Check if usage limit is reached
+  if (this.usageLimit && this.usedCount >= this.usageLimit) {
+    return false;
+  }
+  
+  return true;
+};
+
+// Method to check if coupon has expired
+couponSchema.methods.checkExpiration = function() {
+  const now = new Date();
+  const end = new Date(this.endDate);
+  
+  if (now > end && this.status !== 'expired') {
+    this.status = 'expired';
+    return true;
+  }
+  return false;
+};
+
+// Virtual property for remaining uses
+couponSchema.virtual('remainingUses').get(function() {
+  if (!this.usageLimit) {
+    return null; // Unlimited
+  }
+  return Math.max(0, this.usageLimit - this.usedCount);
+});
+
 
 // Create and export the Coupon model
 const Coupon = mongoose.model('Coupon', couponSchema);
