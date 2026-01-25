@@ -11,7 +11,7 @@ const app = express();
 // Middleware
 // CORS configuration - allow credentials for cookies
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Vue.js default port
+  origin: ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true, // Allow cookies to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -66,6 +66,14 @@ app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/team-members', require('./routes/teamMemberRoutes'));
 app.use('/api/coupons', require('./routes/couponRoutes'));
 app.use('/api/checkout', require('./routes/checkoutRoutes'));
+
+// Import routes
+const orderRoutes = require('./routes/orderRoutes');
+const userRoutes = require('./routes/userRoutes');
+
+// Use routes
+app.use('/api/orders', orderRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
